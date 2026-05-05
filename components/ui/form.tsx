@@ -88,11 +88,18 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
     ({ className, children, ...props }, ref) => {
         const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
+        const isElement = React.isValidElement(children)
+        const element = isElement
+            ? (children as React.ReactElement<{ id?: string;[key: string]: unknown }>)
+            : null
+        const childProps = element?.props
+        const controlId = childProps?.id ?? formItemId
+
         return (
             <div ref={ref} className={cn(className)} {...props}>
-                {React.isValidElement(children)
-                    ? React.cloneElement(children, {
-                        id: formItemId,
+                {element
+                    ? React.cloneElement(element, {
+                        id: controlId,
                         "aria-describedby": error
                             ? `${formDescriptionId} ${formMessageId}`
                             : formDescriptionId,

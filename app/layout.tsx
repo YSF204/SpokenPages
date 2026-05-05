@@ -21,8 +21,8 @@ const monaSans = Mona_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Bokify",
-  description: "A music discovery app built with Next.js and Spotify API",
+  title: "SpokenPages",
+  description: "onvert your books into interactive AI conversations. Upload a PDF and chat with your library.",
 };
 
 export default function RootLayout({

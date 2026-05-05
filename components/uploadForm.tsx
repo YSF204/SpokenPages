@@ -3,7 +3,7 @@
 import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Image as ImageIcon, Upload, X } from "lucide-react"
-import { useForm } from "react-hook-form"
+import { useForm, type ControllerRenderProps } from "react-hook-form"
 import { z } from "zod"
 
 import { LoadingOverlay } from "@/components/LoadingOverlay"
@@ -14,38 +14,27 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
+    useFormField,
 } from "@/components/ui/form"
+import {
+    ACCEPTED_IMAGE_TYPES,
+    ACCEPTED_PDF_TYPES,
+    MAX_FILE_SIZE,
+    voiceCategories,
+    voiceOptions,
+} from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
-const MAX_PDF_SIZE = 50 * 1024 * 1024
-const ACCEPTED_PDF_TYPES = ["application/pdf"]
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
+type VoiceKey = keyof typeof voiceOptions
 
-const voiceOptions = {
-    male: [
-        {
-            value: "Dave",
-            description: "Young male, British-Essex, casual & conversational",
-        },
-        {
-            value: "Daniel",
-            description: "Middle-aged male, British, authoritative but warm",
-        },
-        {
-            value: "Chris",
-            description: "Male, casual & easy-going",
-        },
-    ],
-    female: [
-        {
-            value: "Rachel",
-            description: "Young female, American, calm & clear",
-        },
-        {
-            value: "Sarah",
-            description: "Young female, American, soft & approachable",
-        },
-    ],
+const voiceNames = Object.values(voiceOptions).map((voice) => voice.name) as [
+    string,
+    ...string[]
+]
+
+const voiceOptionsByCategory = {
+    male: voiceCategories.male.map((key) => voiceOptions[key as VoiceKey]),
+    female: voiceCategories.female.map((key) => voiceOptions[key as VoiceKey]),
 }
 
 const formSchema = z.object({
@@ -54,7 +43,7 @@ const formSchema = z.object({
         .refine((file) => ACCEPTED_PDF_TYPES.includes(file.type), {
             message: "Only PDF files are allowed.",
         })
-        .refine((file) => file.size <= MAX_PDF_SIZE, {
+        .refine((file) => file.size <= MAX_FILE_SIZE, {
             message: "PDF must be 50MB or smaller.",
         }),
     cover: z
@@ -65,12 +54,98 @@ const formSchema = z.object({
         }),
     title: z.string().min(1, "Title is required."),
     author: z.string().min(1, "Author name is required."),
-    voice: z.enum(["Dave", "Daniel", "Chris", "Rachel", "Sarah"], {
-        required_error: "Please choose a voice.",
-    }),
+    voice: z.enum(voiceNames, { error: "Please choose a voice." }),
 })
 
 type FormValues = z.infer<typeof formSchema>
+
+type VoiceOptionsProps = {
+    field: ControllerRenderProps<FormValues, "voice">
+}
+
+const VoiceOptions = ({ field }: VoiceOptionsProps) => {
+    const { formItemId } = useFormField()
+    const makeInputId = (voiceName: string, index: number) => {
+        const slug = voiceName.toLowerCase().replace(/\s+/g, "-")
+        return index === 0 ? formItemId : `${formItemId}-${slug}`
+    }
+
+    const maleOptions = voiceOptionsByCategory.male
+    const femaleOptions = voiceOptionsByCategory.female
+
+    return (
+        <div className="space-y-5">
+            <div className="space-y-3">
+                <p className="text-sm font-medium text-[#777]">Male Voices</p>
+                <div className="voice-selector-options flex-col sm:flex-row">
+                    {maleOptions.map((voice, index) => (
+                        <label
+                            key={voice.name}
+                            className={cn(
+                                "voice-selector-option",
+                                field.value === voice.name
+                                    ? "voice-selector-option-selected"
+                                    : "voice-selector-option-default"
+                            )}
+                        >
+                            <FormControl>
+                                <input
+                                    id={makeInputId(voice.name, index)}
+                                    type="radio"
+                                    name={field.name}
+                                    value={voice.name}
+                                    className="sr-only"
+                                    checked={field.value === voice.name}
+                                    onChange={() => field.onChange(voice.name)}
+                                />
+                            </FormControl>
+                            <div className="text-left">
+                                <p className="text-base font-semibold text-[#212a3b]">
+                                    {voice.name}
+                                </p>
+                                <p className="text-sm text-[#777]">{voice.description}</p>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-3">
+                <p className="text-sm font-medium text-[#777]">Female Voices</p>
+                <div className="voice-selector-options flex-col sm:flex-row">
+                    {femaleOptions.map((voice, index) => (
+                        <label
+                            key={voice.name}
+                            className={cn(
+                                "voice-selector-option",
+                                field.value === voice.name
+                                    ? "voice-selector-option-selected"
+                                    : "voice-selector-option-default"
+                            )}
+                        >
+                            <FormControl>
+                                <input
+                                    id={makeInputId(voice.name, index + maleOptions.length)}
+                                    type="radio"
+                                    name={field.name}
+                                    value={voice.name}
+                                    className="sr-only"
+                                    checked={field.value === voice.name}
+                                    onChange={() => field.onChange(voice.name)}
+                                />
+                            </FormControl>
+                            <div className="text-left">
+                                <p className="text-base font-semibold text-[#212a3b]">
+                                    {voice.name}
+                                </p>
+                                <p className="text-sm text-[#777]">{voice.description}</p>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export function UploadForm() {
     const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -121,7 +196,7 @@ export function UploadForm() {
                                     <input
                                         ref={pdfInputRef}
                                         type="file"
-                                        accept="application/pdf"
+                                        accept={ACCEPTED_PDF_TYPES.join(",")}
                                         className="hidden"
                                         onChange={(event) =>
                                             field.onChange(event.target.files?.[0] ?? undefined)
@@ -185,7 +260,7 @@ export function UploadForm() {
                                     <input
                                         ref={coverInputRef}
                                         type="file"
-                                        accept="image/jpeg,image/png,image/webp"
+                                        accept={ACCEPTED_IMAGE_TYPES.join(",")}
                                         className="hidden"
                                         onChange={(event) =>
                                             field.onChange(event.target.files?.[0] ?? undefined)
@@ -285,78 +360,7 @@ export function UploadForm() {
                                 <FormLabel className="form-label">
                                     Choose Assistant Voice
                                 </FormLabel>
-                                <div className="space-y-5">
-                                    <div className="space-y-3">
-                                        <p className="text-sm font-medium text-[#777]">
-                                            Male Voices
-                                        </p>
-                                        <div className="voice-selector-options flex-col sm:flex-row">
-                                            {voiceOptions.male.map((voice) => (
-                                                <label
-                                                    key={voice.value}
-                                                    className={cn(
-                                                        "voice-selector-option",
-                                                        field.value === voice.value
-                                                            ? "voice-selector-option-selected"
-                                                            : "voice-selector-option-default"
-                                                    )}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name={field.name}
-                                                        value={voice.value}
-                                                        className="sr-only"
-                                                        checked={field.value === voice.value}
-                                                        onChange={() => field.onChange(voice.value)}
-                                                    />
-                                                    <div className="text-left">
-                                                        <p className="text-base font-semibold text-[#212a3b]">
-                                                            {voice.value}
-                                                        </p>
-                                                        <p className="text-sm text-[#777]">
-                                                            {voice.description}
-                                                        </p>
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <p className="text-sm font-medium text-[#777]">
-                                            Female Voices
-                                        </p>
-                                        <div className="voice-selector-options flex-col sm:flex-row">
-                                            {voiceOptions.female.map((voice) => (
-                                                <label
-                                                    key={voice.value}
-                                                    className={cn(
-                                                        "voice-selector-option",
-                                                        field.value === voice.value
-                                                            ? "voice-selector-option-selected"
-                                                            : "voice-selector-option-default"
-                                                    )}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name={field.name}
-                                                        value={voice.value}
-                                                        className="sr-only"
-                                                        checked={field.value === voice.value}
-                                                        onChange={() => field.onChange(voice.value)}
-                                                    />
-                                                    <div className="text-left">
-                                                        <p className="text-base font-semibold text-[#212a3b]">
-                                                            {voice.value}
-                                                        </p>
-                                                        <p className="text-sm text-[#777]">
-                                                            {voice.description}
-                                                        </p>
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
+                                <VoiceOptions field={field} />
                                 <FormMessage />
                             </FormItem>
                         )}
