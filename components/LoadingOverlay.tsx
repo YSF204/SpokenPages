@@ -1,36 +1,22 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { Loader2 } from "lucide-react"
+import React from 'react';
+import { Loader2 } from 'lucide-react';
 
-interface LoadingOverlayProps {
-    isOpen: boolean
-    title?: string
-    description?: string
-}
-
-export function LoadingOverlay({
-    isOpen,
-    title,
-    description,
-}: LoadingOverlayProps) {
-    if (!isOpen) {
-        return null
-    }
-
+const LoadingOverlay = () => {
     return (
-        <div className="loading-wrapper" role="status" aria-live="polite">
-            <div className="loading-shadow-wrapper bg-white shadow-soft">
+        <div className="loading-wrapper">
+            <div className="loading-shadow-wrapper bg-white shadow-soft-lg">
                 <div className="loading-shadow">
-                    <Loader2 className="loading-animation h-10 w-10 text-[#663820]" />
-                    {title ? <p className="loading-title">{title}</p> : null}
-                    {description ? (
-                        <p className="text-sm text-[var(--text-secondary)]">
-                            {description}
-                        </p>
-                    ) : null}
+                    <Loader2 className="loading-animation w-12 h-12 text-[#663820]" />
+                    <h2 className="loading-title">Synthesizing Your Book</h2>
+                    <p className="text-[#777] text-center max-w-xs">
+                        Please wait while we process your PDF and prepare your interactive literary experience.
+                    </p>
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
+
+export default LoadingOverlay;
